@@ -9,7 +9,7 @@
 # urllib3 and SSL unless python >= 2.7.9 is used
 #
 # Usage (URL Format): [ip address]:[port]/[website address]
-# e.g. 192.168.0.2:8000/www.example.com/file/path?query
+# e.g. localhost:8000/www.example.com/file/path?query
 
 from urlparse import urlparse
 
@@ -18,7 +18,7 @@ from tornado.httputil import HTTPHeaders
 from bs4 import BeautifulSoup
 import requests
 
-PORT = 9001 # change me if you want
+PORT = 8000 # change me if you want
 
 class MainHandler(web.RequestHandler):
     def __init__(self, *args, **kwargs):
