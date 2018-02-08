@@ -17,7 +17,9 @@ from tornado import ioloop, web, template
 from tornado.httputil import HTTPHeaders
 from bs4 import BeautifulSoup
 import requests
+import cssutils
 import ipdb
+import logging
 PORT = 8000 # change me if you want
 
 class MainHandler(web.RequestHandler):
@@ -56,13 +58,15 @@ class MainHandler(web.RequestHandler):
             self.data = soup.prettify() # soup ingested and parsed html. Urls modified.
 
         elif "css" in r.headers['content-type']:
-            for line in r.content.splitlines():
-                if 'url' in line:
-                    line = self.css_parse(line)
-                self.data = self.data + line + '\n'
+            # Disable cssusilt warnings and errors for imperfect css source
+            cssutils.log.setLevel(logging.CRITICAL)
+
+            sheet = cssutils.parseString(r.text)
+            cssutils.replaceUrls(sheet, self.url_fix)
+            self.data = sheet.cssText
 
         else: # unparsed raw data (css, js, png, ...). All urls unmodified.
-            self.data = r.content
+            self.data = r.content # content is binary, not txt.
 
 
         # critical to have resource files interpreted correctly
@@ -83,8 +87,6 @@ class MainHandler(web.RequestHandler):
         return
 
     def css_parse(self, line):
-        print("#### begin ####")
-        print('line = ', line)
         beginning = 'url('
         end = ')'
         prefix = line.split(beginning)[0] + beginning
@@ -93,24 +95,19 @@ class MainHandler(web.RequestHandler):
 
         url_fixed = self.url_fix(url_to_fix)
         rv = prefix + '\'' + url_fixed + '\')' + suffix
-        print(rv)
-        print("##### end #####")
         return rv
 
     def url_fix(self, url):
         if url.startswith('data:'): # data uri, not actually a link, leave it alone
             rv = url
         elif urisplit(url)[0]: # external / has scheme
-            print('external')
             rv = self.proxy + url
         elif urisplit(url)[1]: # protocol relatives prefixed with '//' / no scheme but has authority
             print('protocol relative')
         elif not urisplit(url)[1] and urisplit(url)[2]: # relative or absolute / no authority but path
-            print('relative or absolute')
             rv = self.proxy + '/' + urijoin(self.host, url)
         else:
             raise 'Unknown url protocol'
-        print(rv)
         return rv
 
     def get(self):
