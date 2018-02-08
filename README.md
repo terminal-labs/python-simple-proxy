@@ -1,7 +1,7 @@
 # simple-proxy
 A simple Python proxy built with Tornado and BeautifulSoup
 
-Requires Python > 2.7.9 atm
+Requires Python > 2.7.9, Python > 3.
 
 `pip install -r requirements.txt`
 
