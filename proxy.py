@@ -57,12 +57,7 @@ class MainHandler(web.RequestHandler):
             self.data = soup.prettify() # soup ingested and parsed html. Urls modified.
 
         elif "css" in r.headers['content-type']:
-            # Disable cssusilt warnings and errors for imperfect css source
-            cssutils.log.setLevel(logging.CRITICAL)
-
-            sheet = cssutils.parseString(r.text)
-            cssutils.replaceUrls(sheet, self.url_fix)
-            self.data = sheet.cssText
+            self.data = self.css_fix(r.text)
 
         else: # unparsed raw data (css, js, png, ...). All urls unmodified.
             self.data = r.content # content is binary, not txt.
@@ -85,16 +80,13 @@ class MainHandler(web.RequestHandler):
         asset[attr] = '{0}/{1}'.format(self.proxy, asset[attr]) # proxify all urls
         return
 
-    def css_parse(self, line):
-        beginning = 'url('
-        end = ')'
-        prefix = line.split(beginning)[0] + beginning
-        url_to_fix = line.split(beginning)[1].split(end)[0].strip('\'').strip('\"')
-        suffix = ')'.join(line.split(beginning)[1].split(end)[1:])
+    def css_fix(self, css):
+            # Disable cssusilt warnings and errors for imperfect css source
+            cssutils.log.setLevel(logging.CRITICAL)
 
-        url_fixed = self.url_fix(url_to_fix)
-        rv = prefix + '\'' + url_fixed + '\')' + suffix
-        return rv
+            sheet = cssutils.parseString(css)
+            cssutils.replaceUrls(sheet, self.url_fix)
+            return sheet.cssText
 
     def url_fix(self, url):
         if url.startswith('data:'): # data uri, not actually a link, leave it alone
