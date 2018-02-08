@@ -52,7 +52,7 @@ class MainHandler(web.RequestHandler):
                 if 'url' in line:
                     line = self.css_parse(line)
                 rv = rv + line + '\n'
-            self.data = r.content
+            self.data = rv
 
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
@@ -81,7 +81,7 @@ class MainHandler(web.RequestHandler):
         suffix = ')'.join(line.split(beginning)[1].split(end)[1:])
 
         url_fixed = self.url_fix(url_to_fix)
-        rv = prefix + '\'' + url_fixed + '\'' + suffix
+        rv = prefix + '\'' + url_fixed + '\')' + suffix
         print rv
         print "##### end #####"
         return rv
