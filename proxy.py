@@ -12,13 +12,12 @@
 # e.g. localhost:8000/www.example.com/file/path?query
 
 from urlparse import urlparse
+from uritools import uricompose, urijoin, urisplit, uriunsplit
 
 from tornado import ioloop, web, template
 from tornado.httputil import HTTPHeaders
 from bs4 import BeautifulSoup
 import requests
-import tinycss
-import cssselect
 import ipdb
 PORT = 8000 # change me if you want
 
@@ -41,7 +40,7 @@ class MainHandler(web.RequestHandler):
                 #     self.html_url_fix(asset, attr)
                 if asset.has_attr('href'): # e.g. inside <link> tags
                     attr = 'href'
-                    self.html_url_fix(asset, attr)
+                    self.html_parse(asset, attr)
                 else: # no attrs need fixing
                     attr = None
             self.data = soup.prettify() # soup ingested and parsed html. Urls modified.
@@ -51,14 +50,14 @@ class MainHandler(web.RequestHandler):
             rv = ''
             for line in r.content.splitlines():
                 if 'url' in line:
-                    line = self.css_url_fix(line)
+                    line = self.css_parse(line)
                 rv = rv + line + '\n'
             self.data = r.content
 
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
 
-    def html_url_fix(self, asset, attr):
+    def html_parse(self, asset, attr):
         '''
         Take self, assets (the html element), and their attrs (src or href),
         and set the corrected attr by making all links absolute and run them
@@ -72,21 +71,35 @@ class MainHandler(web.RequestHandler):
         asset[attr] = '{0}/{1}'.format(self.proxy, asset[attr]) # proxify all urls
         return
 
-    def css_url_fix(self, line):
+    def css_parse(self, line):
+        print "#### begin ####"
         print 'line = ', line
         beginning = 'url('
         end = ')'
         prefix = line.split(beginning)[0] + beginning
-        url_to_fix = line.split(beginning)[1].split(end)[0]
-        suffix = line.split(beginning)[1].split(end)[1]
+        url_to_fix = line.split(beginning)[1].split(end)[0].strip('\'').strip('\"')
+        suffix = ')'.join(line.split(beginning)[1].split(end)[1:])
 
-        if not urlparse(url_to_fix).hostname: # relative url - make it absolute
-            url_fixed = '{0}{1}'.format(self.host, url_to_fix)
-        elif url_to_fix[0:2] == '//': # protocol relatives prefixed with '//'
-            url_fixed = self.request.protocol + '://' + url_to_fix[2:]
+        url_fixed = self.url_fix(url_to_fix)
+        rv = prefix + '\'' + url_fixed + '\'' + suffix
+        print rv
+        print "##### end #####"
+        return rv
 
-        print prefix + url_fixed + suffix
-        return prefix + url_fixed + suffix
+    def url_fix(self, url):
+        print url
+        if urisplit(url)[0]: # external / has scheme
+            print 'external'
+            rv = self.proxy + url
+        elif urisplit(url)[1]: # protocol relatives prefixed with '//' / no scheme but has authority
+            print 'protocol relative'
+        elif not urisplit(url)[1] and urisplit(url)[2]: # relative or absolute / no authority but path
+            print 'relative or absolute'
+            rv = self.proxy + '/' + urijoin(self.host, url)
+        else:
+            raise 'Unknown url protocol'
+        print rv
+        return rv
 
     def get(self):
         self.write(self.data)
