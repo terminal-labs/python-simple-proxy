@@ -30,11 +30,18 @@ class MainHandler(web.RequestHandler):
             url = 'http://' + url
         self.host = urlparse(url).scheme + '://' + urlparse(url).netloc
         self.proxy = self.request.protocol + '://' + self.request.host
+         # Initialize to empty string in case we need to return with it unset
+        self.data = ""
+
         try:
             r = requests.get(url)
         except requests.ConnectionError as e:
-            print("\nFailed to establish a connection with %s\n" % url)
-            raise e
+            # Ignore special cases where browsers look for something automatically
+            if url == "http://favicon.ico":
+                return
+            else:
+                print("\nFailed to establish a connection with %s\n" % url)
+                raise e
 
         if "html" in r.headers['content-type']:
             soup = BeautifulSoup(r.text, 'lxml') # lxml - don't correct any messed up html
@@ -48,15 +55,16 @@ class MainHandler(web.RequestHandler):
                 else: # no attrs need fixing
                     attr = None
             self.data = soup.prettify() # soup ingested and parsed html. Urls modified.
-        else:
-            self.data = r.text # unparsed raw data (css, js, png, ...). All urls unmodified.
-        if "css" in r.headers['content-type']:
-            rv = ''
+
+        elif "css" in r.headers['content-type']:
             for line in r.content.splitlines():
                 if 'url' in line:
                     line = self.css_parse(line)
-                rv = rv + line + '\n'
-            self.data = rv
+                self.data = self.data + line + '\n'
+
+        else: # unparsed raw data (css, js, png, ...). All urls unmodified.
+            self.data = r.content
+
 
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
