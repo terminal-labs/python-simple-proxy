@@ -90,12 +90,16 @@ class MainHandler(web.RequestHandler):
 
     def url_fix(self, url):
         if url.startswith('data:'): # data uri, not actually a link, leave it alone
+            # e.g. data:text/html,<script>alert('hi');</script>
             rv = url
         elif urisplit(url)[0]: # external / has scheme
+            # e.g http://example.com/path
             rv = self.proxy + url
         elif urisplit(url)[1]: # protocol relatives prefixed with '//' / no scheme but has authority
-            print('protocol relative')
+            # e.g. //example.com/path
+            rv = self.proxy + '/' + url.lstrip('/')
         elif not urisplit(url)[1] and urisplit(url)[2]: # relative or absolute / no authority but path
+            # e.g. ../path
             rv = self.proxy + '/' + urijoin(self.host, url)
         else:
             raise 'Unknown url protocol'
