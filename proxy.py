@@ -87,8 +87,9 @@ class MainHandler(web.RequestHandler):
         return rv
 
     def url_fix(self, url):
-        print url
-        if urisplit(url)[0]: # external / has scheme
+        if url.startswith('data:'): # data uri, not actually a link, leave it alone
+            rv = url
+        elif urisplit(url)[0]: # external / has scheme
             print 'external'
             rv = self.proxy + url
         elif urisplit(url)[1]: # protocol relatives prefixed with '//' / no scheme but has authority
