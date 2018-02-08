@@ -11,15 +11,14 @@
 # Usage (URL Format): [ip address]:[port]/[website address]
 # e.g. localhost:8000/www.example.com/file/path?query
 
-from uritools import uricompose, urijoin, urisplit, uriunsplit
-
-from tornado import ioloop, web, template
-from tornado.httputil import HTTPHeaders
-from bs4 import BeautifulSoup
-import requests
-import cssutils
-import ipdb
 import logging
+import requests
+
+import cssutils
+from bs4 import BeautifulSoup
+from tornado import ioloop, web
+from uritools import urisplit, urijoin
+
 PORT = 8000 # change me if you want
 
 class MainHandler(web.RequestHandler):
