@@ -26,6 +26,7 @@ class MainHandler(web.RequestHandler):
         super(MainHandler, self).__init__(*args, **kwargs)
 
         url = self.request.uri[1:] # strip the preceding forward slash
+        print("Processing %s" % url)
         if 'http' not in url:
             url = 'http://' + url
         self.host = urisplit(url)[0] + '://' +  urisplit(url)[1]
