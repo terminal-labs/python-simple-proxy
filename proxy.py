@@ -102,7 +102,9 @@ class MainHandler(web.RequestHandler):
         return rv
 
     def url_fix(self, url):
-        if url.startswith('data:'): # data uri, not actually a link, leave it alone
+        if url == "": # Null case
+            rv = url
+        elif url.startswith('data:'): # data uri, not actually a link, leave it alone
             # e.g. data:text/html,<script>alert('hi');</script>
             rv = url
         elif urisplit(url)[0]: # absolute / has scheme
@@ -121,7 +123,8 @@ class MainHandler(web.RequestHandler):
             # fragments are left alone
             rv = url
         else:
-            raise 'Unknown url protocol with url: %s' % url
+            print('\n\nUnknown url protocol with url: %s' % url)
+            rv = url
         return rv
 
     def get(self):
