@@ -45,27 +45,24 @@ class MainHandler(web.RequestHandler):
 
         if "html" in r.headers['content-type']:
             soup = BeautifulSoup(r.text, 'lxml') # lxml - don't correct any messed up html
-            for asset in soup.find_all(['img', 'script', 'link']):
-                if asset.has_attr('data-src'): # e.g. inside <script> and <img> tags
-                    attr = 'data-src'
-                    self.html_fix(asset, attr)
-                elif asset.has_attr('data-url'): # e.g. inside <script> and <img> tags
-                    attr = 'data-url'
-                    self.html_fix(asset, attr)
-                elif asset.has_attr('src'): # e.g. inside <script> and <img> tags
-                    attr = 'src'
-                    self.html_fix(asset, attr)
-                elif asset.has_attr('content'): # e.g. inside <script> and <img> tags
-                    attr = 'content'
-                    self.html_fix(asset, attr)
-                elif asset.has_attr('name'): # e.g. inside <script> and <img> tags
-                    attr = 'name'
-                    self.html_fix(asset, attr)
-                elif asset.has_attr('href'): # e.g. inside <link> tags
-                    attr = 'href'
-                    self.html_fix(asset, attr)
-                else: # no attrs need fixing
-                    attr = None
+            tags_to_check = [
+                # 'a',
+                'img',
+                'link',
+                'script',
+            ]
+            attrs_to_check = [
+                'content',
+                'data-src',
+                'data-url',
+                'href',
+                'name',
+                'src',
+            ]
+            for tag in soup.find_all(tags_to_check):
+                for attr in attrs_to_check:
+                    if tag.has_attr(attr): # e.g. inside <script> and <img> tags
+                        self.html_fix(tag, attr)
             self.data = soup.prettify() # soup ingested and parsed html. Urls modified.
 
         elif "css" in r.headers['content-type']:
@@ -78,13 +75,13 @@ class MainHandler(web.RequestHandler):
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
 
-p    def html_fix(self, asset, attr):
+    def html_fix(self, tag, attr):
         '''
-        Take self, assets (the html element), and their attrs (src or href),
+        Take self, tags (the html element), and their attrs (src or href),
         and set the corrected attr by making fixing their links.
         '''
-        url = asset[attr]
-        asset[attr] = self.url_fix(url)
+        url = tag[attr]
+        tag[attr] = self.url_fix(url)
         return
 
     def css_fix(self, css):
