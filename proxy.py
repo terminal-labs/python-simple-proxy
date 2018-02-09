@@ -28,7 +28,7 @@ class MainHandler(web.RequestHandler):
         t = time.process_time()
 
         url = self.request.uri[1:] # strip the preceding forward slash
-        print("Processing %s" % url)
+        print(url) # Keep. Let's the user know what step we're at.
         if 'http' not in url:
             url = 'http://' + url
         self.host = urisplit(url)[0] + '://' +  urisplit(url)[1]
@@ -76,7 +76,7 @@ class MainHandler(web.RequestHandler):
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
 
-        print("    ", time.process_time() - t)
+        print("   = ", time.process_time() - t) # Time since beginning of proxy query.
 
     def html_fix(self, tag, attr):
         '''
