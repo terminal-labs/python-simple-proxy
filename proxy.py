@@ -13,6 +13,7 @@
 
 import logging
 import requests
+import time
 
 import cssutils
 from bs4 import BeautifulSoup
@@ -24,6 +25,7 @@ PORT = 8000 # change me if you want
 class MainHandler(web.RequestHandler):
     def __init__(self, *args, **kwargs):
         super(MainHandler, self).__init__(*args, **kwargs)
+        t = time.process_time()
 
         url = self.request.uri[1:] # strip the preceding forward slash
         print("Processing %s" % url)
@@ -74,6 +76,8 @@ class MainHandler(web.RequestHandler):
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
 
+        print("    ", time.process_time() - t)
+
     def html_fix(self, tag, attr):
         '''
         Take self, tags (the html element), and their attrs (src or href),
@@ -91,7 +95,7 @@ class MainHandler(web.RequestHandler):
             declaration = cssutils.parseStyle(css)
             cssutils.replaceUrls(declaration, self.url_fix)
             rv = declaration.cssText
-        else:
+        else: # style tag or external stylesheet
             sheet = cssutils.parseString(css)
             cssutils.replaceUrls(sheet, self.url_fix)
             rv = sheet.cssText
