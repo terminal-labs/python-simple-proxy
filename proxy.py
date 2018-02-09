@@ -46,12 +46,24 @@ class MainHandler(web.RequestHandler):
         if "html" in r.headers['content-type']:
             soup = BeautifulSoup(r.text, 'lxml') # lxml - don't correct any messed up html
             for asset in soup.find_all(['img', 'script', 'link']):
-                # if asset.has_attr('src'): # e.g. inside <script> and <img> tags
-                #     attr = 'src'
-                #     self.html_url_fix(asset, attr)
-                if asset.has_attr('href'): # e.g. inside <link> tags
+                if asset.has_attr('data-src'): # e.g. inside <script> and <img> tags
+                    attr = 'data-src'
+                    self.html_fix(asset, attr)
+                elif asset.has_attr('data-url'): # e.g. inside <script> and <img> tags
+                    attr = 'data-url'
+                    self.html_fix(asset, attr)
+                elif asset.has_attr('src'): # e.g. inside <script> and <img> tags
+                    attr = 'src'
+                    self.html_fix(asset, attr)
+                elif asset.has_attr('content'): # e.g. inside <script> and <img> tags
+                    attr = 'content'
+                    self.html_fix(asset, attr)
+                elif asset.has_attr('name'): # e.g. inside <script> and <img> tags
+                    attr = 'name'
+                    self.html_fix(asset, attr)
+                elif asset.has_attr('href'): # e.g. inside <link> tags
                     attr = 'href'
-                    self.html_parse(asset, attr)
+                    self.html_fix(asset, attr)
                 else: # no attrs need fixing
                     attr = None
             self.data = soup.prettify() # soup ingested and parsed html. Urls modified.
@@ -66,39 +78,36 @@ class MainHandler(web.RequestHandler):
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
 
-    def html_parse(self, asset, attr):
+p    def html_fix(self, asset, attr):
         '''
         Take self, assets (the html element), and their attrs (src or href),
-        and set the corrected attr by making all links absolute and run them
-        through this proxy.
+        and set the corrected attr by making fixing their links.
         '''
-        if not urisplit(asset[attr])[1]: # relative url - make it absolute
-            asset[attr] = '{0}{1}'.format(self.host, asset[attr])
-        elif asset[attr][0:2] == '//': # protocol relatives prefixed with '//'
-            asset[attr] = self.request.protocol + '://' + asset[attr][2:]
-
-        asset[attr] = '{0}/{1}'.format(self.proxy, asset[attr]) # proxify all urls
+        url = asset[attr]
+        asset[attr] = self.url_fix(url)
         return
 
     def css_fix(self, css):
-            # Disable cssusilt warnings and errors for imperfect css source
-            cssutils.log.setLevel(logging.CRITICAL)
+        # Disable cssusilt warnings and errors for imperfect css source
+        cssutils.log.setLevel(logging.CRITICAL)
 
-            sheet = cssutils.parseString(css)
-            cssutils.replaceUrls(sheet, self.url_fix)
-            return sheet.cssText
+        sheet = cssutils.parseString(css)
+        cssutils.replaceUrls(sheet, self.url_fix)
+        return sheet.cssText
 
     def url_fix(self, url):
         if url.startswith('data:'): # data uri, not actually a link, leave it alone
             # e.g. data:text/html,<script>alert('hi');</script>
             rv = url
-        elif urisplit(url)[0]: # external / has scheme
+        elif urisplit(url)[0]: # absolute / has scheme
             # e.g http://example.com/path
-            rv = self.proxy + url
+            rv = self.proxy +'/' + url
         elif urisplit(url)[1]: # protocol relatives prefixed with '//' / no scheme but has authority
             # e.g. //example.com/path
-            rv = self.proxy + '/' + url.lstrip('/')
-        elif not urisplit(url)[1] and urisplit(url)[2]: # relative or absolute / no authority but path
+            # PRs should be able to be either http or https. In practice some sites are turning off
+            # support for http, so just force everything through https
+            rv = self.proxy + '/https://' + url.lstrip('/')
+        elif not urisplit(url)[1] and urisplit(url)[2]: # relative / no authority but path
             # e.g. ../path
             rv = self.proxy + '/' + urijoin(self.host, url)
         else:
