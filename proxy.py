@@ -46,7 +46,7 @@ class MainHandler(web.RequestHandler):
         if "html" in r.headers['content-type']:
             soup = BeautifulSoup(r.text, 'lxml') # lxml - don't correct any messed up html
             tags_to_check = [
-                # 'a',
+                'a',
                 'img',
                 'link',
                 'script',
@@ -61,7 +61,7 @@ class MainHandler(web.RequestHandler):
             ]
             for tag in soup.find_all(tags_to_check):
                 for attr in attrs_to_check:
-                    if tag.has_attr(attr): # e.g. inside <script> and <img> tags
+                    if tag.has_attr(attr): # e.g. <img src="...">
                         self.html_fix(tag, attr)
             self.data = soup.prettify() # soup ingested and parsed html. Urls modified.
 
@@ -107,8 +107,12 @@ class MainHandler(web.RequestHandler):
         elif not urisplit(url)[1] and urisplit(url)[2]: # relative / no authority but path
             # e.g. ../path
             rv = self.proxy + '/' + urijoin(self.host, url)
+        elif url == '#' or (not urisplit(url)[2] and not urisplit(url)[3] and urisplit(url)[4]): # fragment
+            # e.g. #id-12345
+            # fragments are left alone
+            rv = url
         else:
-            raise 'Unknown url protocol'
+            raise 'Unknown url protocol with url: %s' % url
         return rv
 
     def get(self):
