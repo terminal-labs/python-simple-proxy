@@ -38,11 +38,11 @@ class MainHandler(web.RequestHandler):
             r = requests.get(url)
         except requests.ConnectionError as e:
             # Ignore special cases where browsers look for something automatically
-            if url == "http://favicon.ico":
-                return
-            else:
-                print("\nFailed to establish a connection with %s\n" % url)
-                raise e
+            # if url == "http://favicon.ico":
+            #     return
+            # else:
+            print("\nFailed to establish a connection with %s\n" % url)
+            raise e
 
         if "html" in r.headers['content-type']:
             soup = BeautifulSoup(r.text, 'lxml') # lxml - don't correct any messed up html
@@ -53,9 +53,15 @@ class MainHandler(web.RequestHandler):
                 'src',
             ]
             for tag in soup.find_all():
-                for attr in attrs_to_check:
-                    if tag.has_attr(attr): # e.g. <img src="...">
-                        self.html_fix(tag, attr)
+                if tag.name == 'style':
+                    tag.string = str(self.css_fix(tag.string))
+                else:
+                    for attr in attrs_to_check:
+                        if tag.has_attr(attr): # e.g. <img src="...">
+                            self.html_fix(tag, attr)
+                    if tag.has_attr('style'):
+                        tag['style'] = self.css_fix(tag['style'], inline=True)
+
             self.data = soup.prettify() # soup ingested and parsed html. Urls modified.
 
         elif "css" in r.headers['content-type']:
@@ -77,13 +83,19 @@ class MainHandler(web.RequestHandler):
         tag[attr] = self.url_fix(url)
         return
 
-    def css_fix(self, css):
+    def css_fix(self, css, inline=False):
         # Disable cssusilt warnings and errors for imperfect css source
         cssutils.log.setLevel(logging.CRITICAL)
 
-        sheet = cssutils.parseString(css)
-        cssutils.replaceUrls(sheet, self.url_fix)
-        return sheet.cssText
+        if inline:
+            declaration = cssutils.parseStyle(css)
+            cssutils.replaceUrls(declaration, self.url_fix)
+            rv = declaration.cssText
+        else:
+            sheet = cssutils.parseString(css)
+            cssutils.replaceUrls(sheet, self.url_fix)
+            rv = sheet.cssText
+        return rv
 
     def url_fix(self, url):
         if url.startswith('data:'): # data uri, not actually a link, leave it alone
