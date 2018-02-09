@@ -1,12 +1,7 @@
 #! /usr/bin/env python
 #
-# This will route a webpage and all of it's included src and hrefs
+# This will route a webpage and all of it's included url
 # calls through this proxy.
-#
-# This is meant to be used in a virtualenv with pip installed packages:
-# tornado beautifulsoup4 requests lxml
-# Note: the proxy terminal output will display errors related to
-# urllib3 and SSL unless python >= 2.7.9 is used
 #
 # Usage (URL Format): [ip address]:[port]/[website address]
 # e.g. localhost:8000/www.example.com/file/path?query

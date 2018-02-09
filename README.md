@@ -11,7 +11,7 @@ Then run `python proxy.py`. Next open a browser and tell it where to look:
 
 Usage (URL Format): [ip address]:[port]/[website address]
 
-e.g. localhost:8000/www.example.com/file/path?query
+e.g. PUT THIS IN YOUR BROWSER --> `localhost:8000/www.example.com/`
 
 ## About
 
