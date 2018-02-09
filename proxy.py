@@ -45,21 +45,13 @@ class MainHandler(web.RequestHandler):
 
         if "html" in r.headers['content-type']:
             soup = BeautifulSoup(r.text, 'lxml') # lxml - don't correct any messed up html
-            tags_to_check = [
-                'a',
-                'img',
-                'link',
-                'script',
-            ]
             attrs_to_check = [
-                'content',
                 'data-src',
                 'data-url',
                 'href',
-                'name',
                 'src',
             ]
-            for tag in soup.find_all(tags_to_check):
+            for tag in soup.find_all():
                 for attr in attrs_to_check:
                     if tag.has_attr(attr): # e.g. <img src="...">
                         self.html_fix(tag, attr)
