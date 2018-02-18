@@ -6,7 +6,7 @@ Requires Python > 2.7.9, Python > 3.
 
 `pip install -e .`
 
-Then run `python proxy.py`. Next open a browser and tell it where to look:
+Then run `simple-proxy`. Next open a browser and tell it where to look:
 
 
 Usage (URL Format): [ip address]:[port]/[website address]
