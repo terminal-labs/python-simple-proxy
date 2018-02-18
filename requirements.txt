@@ -1,6 +1,0 @@
-tornado
-beautifulsoup4
-requests
-lxml
-uritools
-cssutils

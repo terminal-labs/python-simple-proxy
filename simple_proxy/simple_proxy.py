@@ -10,20 +10,20 @@ import logging
 import requests
 import time
 
+import click
 import cssutils
 from bs4 import BeautifulSoup
 from tornado import ioloop, web
 from uritools import urisplit, urijoin
 
-PORT = 8000 # change me if you want
-
 class MainHandler(web.RequestHandler):
-    def __init__(self, *args, **kwargs):
-        super(MainHandler, self).__init__(*args, **kwargs)
-        t = time.process_time()
+    def initialize(self, verbosity):
+        self.verbosity = verbosity
 
+    def get(self, *args, **kwargs):
         url = self.request.uri[1:] # strip the preceding forward slash
-        print(url) # Keep. Let's the user know what step we're at.
+        if self.verbosity:
+            print(':::: ', url) # Keep. Let's the user know what step we're at.
         if 'http' not in url:
             url = 'http://' + url
         self.host = urisplit(url)[0] + '://' +  urisplit(url)[1]
@@ -34,12 +34,11 @@ class MainHandler(web.RequestHandler):
         try:
             r = requests.get(url)
         except requests.ConnectionError as e:
-            # Ignore special cases where browsers look for something automatically
-            # if url == "http://favicon.ico":
-            #     return
-            # else:
-            print("\nFailed to establish a connection with %s\n" % url)
-            raise e
+            if self.verbosity >= 2:
+                print("\nFailed to establish a connection with %s\n" % url)
+                raise e
+            else:
+                return
 
         if "html" in r.headers['content-type']:
             soup = BeautifulSoup(r.text, 'lxml') # lxml - don't correct any messed up html
@@ -71,7 +70,8 @@ class MainHandler(web.RequestHandler):
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
 
-        print("   = ", time.process_time() - t) # Time since beginning of proxy query.
+#        print("   = ", time.process_time() - t) # Time since beginning of proxy query.
+        self.write(self.data)
 
     def html_fix(self, tag, attr):
         '''
@@ -122,15 +122,26 @@ class MainHandler(web.RequestHandler):
             rv = url
         return rv
 
-    def get(self):
-        self.write(self.data)
-
-def make_app():
+def make_app(verbosity):
     return web.Application([
-        (r"^.*", MainHandler),
+        (r"^.*", MainHandler, {'verbosity':verbosity}),
     ])
 
-if __name__ == "__main__":
-    app = make_app()
-    app.listen(PORT, address="0.0.0.0")
+context_settings = {
+    'help_option_names': ['-h', '--help'],
+}
+
+@click.command(context_settings=context_settings)
+@click.option('-p', '--port', type=int, default=8000,
+              help='The port to serve the proxy on. Defaults to 8000')
+@click.option('-v', '--verbose', 'verbosity', count=True,
+              help='Increases the verbosity of the logging.')
+def cli(port, verbosity):
+    app = make_app(verbosity)
+    app.listen(port, address="0.0.0.0")
     ioloop.IOLoop.current().start()
+
+if __name__ == "__main__":
+    cli()
+
+main = cli
