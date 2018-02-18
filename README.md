@@ -4,7 +4,7 @@ A simple reverse proxy built with Tornado and Python
 
 Requires Python > 2.7.9, Python > 3.
 
-`pip install -r requirements.txt`
+`pip install -e .`
 
 Then run `python proxy.py`. Next open a browser and tell it where to look:
 
