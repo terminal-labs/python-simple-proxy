@@ -40,13 +40,25 @@ class MainHandler(web.RequestHandler):
             else:
                 return
 
-        if "html" in r.headers['content-type']:
+        if any(content_type in r.headers['content-type'] for content_type in ('html', 'svg')):
             soup = BeautifulSoup(r.text, 'lxml') # lxml - don't correct any messed up html
-            attrs_to_check = [
+            attrs_to_check = [ # https://stackoverflow.com/questions/2725156/complete-list-of-html-tag-attributes-which-have-a-url-value plus a few others
+                'action',
+                'archive',
+                'background',
+                'cite',
+                'classid',
+                'codebase',
                 'data-src',
                 'data-url',
+                'formaction',
                 'href',
+                'icon',
+                'longdesc',
+                'poster',
+                'profile',
                 'src',
+                'usemap',
             ]
             for tag in soup.find_all():
                 if tag.name == 'style':
