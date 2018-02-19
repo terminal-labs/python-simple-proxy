@@ -26,7 +26,7 @@ setup(
     ],
     entry_points='''
     [console_scripts]
-    simple_proxy=simple_proxy.simple_proxy:cli
+    simple-proxy=simple_proxy.cli:main
     '''
 
 )

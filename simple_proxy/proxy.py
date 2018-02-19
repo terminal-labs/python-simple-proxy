@@ -13,7 +13,7 @@ import time
 import click
 import cssutils
 from bs4 import BeautifulSoup
-from tornado import ioloop, web
+from tornado import web
 from uritools import urisplit, urijoin
 
 class MainHandler(web.RequestHandler):
@@ -23,7 +23,7 @@ class MainHandler(web.RequestHandler):
     def get(self, *args, **kwargs):
         url = self.request.uri[1:] # strip the preceding forward slash
         if self.verbosity:
-            print(':::: ', url) # Keep. Let's the user know what step we're at.
+            click.echo(':::: %s' % url) # Keep. Let's the user know what step we're at.
         if 'http' not in url:
             url = 'http://' + url
         self.host = urisplit(url)[0] + '://' +  urisplit(url)[1]
@@ -35,7 +35,7 @@ class MainHandler(web.RequestHandler):
             r = requests.get(url)
         except requests.ConnectionError as e:
             if self.verbosity >= 2:
-                print("\nFailed to establish a connection with %s\n" % url)
+                click.echo("\nFailed to establish a connection with %s\n" % url)
                 raise e
             else:
                 return
@@ -70,7 +70,7 @@ class MainHandler(web.RequestHandler):
         # critical to have resource files interpreted correctly
         self.set_header('content-type', r.headers['content-type'])
 
-#        print("   = ", time.process_time() - t) # Time since beginning of proxy query.
+#        click.echo("   = ", time.process_time() - t) # Time since beginning of proxy query.
         self.write(self.data)
 
     def html_fix(self, tag, attr):
@@ -118,7 +118,7 @@ class MainHandler(web.RequestHandler):
             # fragments are left alone
             rv = url
         else:
-            print('\n\nUnknown url protocol with url: %s' % url)
+            click.echo('\n\nUnknown url protocol with url: %s' % url)
             rv = url
         return rv
 
@@ -126,22 +126,3 @@ def make_app(verbosity):
     return web.Application([
         (r"^.*", MainHandler, {'verbosity':verbosity}),
     ])
-
-context_settings = {
-    'help_option_names': ['-h', '--help'],
-}
-
-@click.command(context_settings=context_settings)
-@click.option('-p', '--port', type=int, default=8000,
-              help='The port to serve the proxy on. Defaults to 8000')
-@click.option('-v', '--verbose', 'verbosity', count=True,
-              help='Increases the verbosity of the logging.')
-def cli(port, verbosity):
-    app = make_app(verbosity)
-    app.listen(port, address="0.0.0.0")
-    ioloop.IOLoop.current().start()
-
-if __name__ == "__main__":
-    cli()
-
-main = cli
